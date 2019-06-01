@@ -2,12 +2,13 @@ import argparse
 import tensorflow as tf
 import cv2
 from utils import detector_utils as detector_utils
+from utils import recognizer_utils as recognizer_utils
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 消除警告
 
 
-score_thresh = 0.5
+score_thresh = 0.1
 
 
 if __name__ == '__main__':
@@ -22,7 +23,7 @@ if __name__ == '__main__':
         help='Max number of hands to detect.')
     args = parser.parse_args()
     # 载入图像
-    img_src = cv2.imread('test_image/image2.jpg')
+    img_src = cv2.imread('test_image/image0.jpg')
     # 加载模型
     detection_graph, sess = detector_utils.load_inference_graph()
     sess = tf.Session(graph=detection_graph)
@@ -32,12 +33,18 @@ if __name__ == '__main__':
         print('图片加载成功。')
         boxes, scores = detector_utils.detect_objects(
             img_src, detection_graph, sess)
+        print('scores:', scores)
         # draw bounding boxes
-        detector_utils.draw_box_on_image(
+        boxes_to_recog = detector_utils.draw_box_on_image(
             args.num_hands, score_thresh, scores, boxes, 
             img_src.shape[1], img_src.shape[0], img_src)
-        # 显示图片
         cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
         cv2.imshow('Result', img_src)
+        # 进一步处理
+        # img_roi = recognizer_utils.getROI(img_src, boxes_to_recog, 0.1)
+        # img_dst = recognizer_utils.processROI(img_roi)
+        # 显示图片
+        # cv2.namedWindow('Result - processed', cv2.WINDOW_NORMAL)
+        # cv2.imshow('Result - processed', img_roi)
         cv2.waitKey(0)
 

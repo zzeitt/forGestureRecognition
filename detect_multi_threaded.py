@@ -7,6 +7,7 @@ import multiprocessing
 import tensorflow as tf
 import cv2
 from utils import detector_utils as detector_utils
+from utils import recognizer_utils as recognizer_utils
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 消除警告
@@ -36,12 +37,15 @@ def worker(input_q, output_q, cap_params, frame_processed):
             boxes, scores = detector_utils.detect_objects(
                 frame, detection_graph, sess)
             # draw bounding boxes
-            detector_utils.draw_box_on_image(
+            boxes_to_recog, scores_to_show = detector_utils.draw_box_on_image(
                 cap_params['num_hands_detect'], cap_params["score_thresh"],
                 scores, boxes, cap_params['im_width'], cap_params['im_height'],
                 frame)
+            b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(scores_to_show, boxes_to_recog, 0.2, frame)
+            img_roi = recognizer_utils.processROI(b_have_hand, img_roi)
             # add frame annotated with bounding box to queue
             output_q.put(frame)
+            output_q.put(img_roi)
             frame_processed += 1
         else:
             output_q.put(frame)
@@ -135,6 +139,7 @@ if __name__ == '__main__':
     index = 0
 
     cv2.namedWindow('Multi-Threaded Detection', cv2.WINDOW_NORMAL)
+    cv2.namedWindow('Region of Interest', cv2.WINDOW_AUTOSIZE)
 
     # ----------------Loop开始---------------- #
     while True:
@@ -147,11 +152,14 @@ if __name__ == '__main__':
             input_q.put(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
             output_frame = output_q.get()
+            output_roi = output_q.get()
             output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
+            output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
         else:
             # 非摄像头视频
             input_q.put(frame)
             output_frame = output_q.get()
+            output_roi = output_q.get()
 
         elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
         num_frames += 1
@@ -164,6 +172,7 @@ if __name__ == '__main__':
                     detector_utils.draw_fps_on_image("FPS : " + str(int(fps)),
                                                      output_frame)
                 cv2.imshow('Multi-Threaded Detection', output_frame)
+                cv2.imshow('Region of Interest', output_roi)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             else:
