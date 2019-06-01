@@ -1,0 +1,1 @@
+python detect_multi_threaded.py -src "test_video/kite.mp4" -nhands 2 -fps 0 -num-w 2 -wd 600 -ht 400

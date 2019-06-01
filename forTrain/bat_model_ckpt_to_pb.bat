@@ -1,0 +1,1 @@
+python export_inference_graph.py --input_type image_tensor --pipeline_config_path model-checkpoint/ssd_mobilenet_v1_coco.config --trained_checkpoint_prefix model-checkpoint/model.ckpt-200002 --output_directory hand_inference_graph

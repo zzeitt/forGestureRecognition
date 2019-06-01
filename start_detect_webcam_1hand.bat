@@ -1,0 +1,1 @@
+python detect_multi_threaded.py -nhands 1 -fps 0 -num-w 2 -wd 600 -ht 400

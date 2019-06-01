@@ -1,0 +1,1 @@
+python export_inference_graph.py --input_type image_tensor --pipeline_config_path model-checkpoint-2/pipeline.config --trained_checkpoint_prefix model-checkpoint-2/model.ckpt --output_directory hand_inference_graph
