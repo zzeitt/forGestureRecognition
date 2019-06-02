@@ -41,7 +41,9 @@ def worker(input_q, output_q, cap_params, frame_processed):
                 cap_params['num_hands_detect'], cap_params["score_thresh"],
                 scores, boxes, cap_params['im_width'], cap_params['im_height'],
                 frame)
-            b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(scores_to_show, boxes_to_recog, 0.2, frame)
+            b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(
+                scores_to_show, boxes_to_recog, 0.2,
+                cap_params['im_width'], cap_params['im_height'], frame)
             img_roi = recognizer_utils.processROI(b_have_hand, img_roi)
             # add frame annotated with bounding box to queue
             output_q.put(frame)
@@ -139,52 +141,56 @@ if __name__ == '__main__':
     index = 0
 
     cv2.namedWindow('Multi-Threaded Detection', cv2.WINDOW_NORMAL)
-    cv2.namedWindow('Region of Interest', cv2.WINDOW_AUTOSIZE)
+    cv2.namedWindow('ROI', cv2.WINDOW_AUTOSIZE)
 
     # ----------------Loop开始---------------- #
     while True:
-        frame = video_capture.read()
-        index += 1
+        try:
+            frame = video_capture.read()
+            index += 1
 
-        if args.video_source == 0:
-            # 摄像头视频
-            frame = cv2.flip(frame, 1)
-            input_q.put(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            if args.video_source == 0:
+                # 摄像头视频
+                frame = cv2.flip(frame, 1)
+                input_q.put(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-            output_frame = output_q.get()
-            output_roi = output_q.get()
-            output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
-            output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
-        else:
-            # 非摄像头视频
-            input_q.put(frame)
-            output_frame = output_q.get()
-            output_roi = output_q.get()
-
-        elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
-        num_frames += 1
-        fps = num_frames / elapsed_time
-        # print("frame ",  index, num_frames, elapsed_time, fps)
-
-        if (output_frame is not None):
-            if (args.display > 0):
-                if (args.fps > 0):
-                    detector_utils.draw_fps_on_image("FPS : " + str(int(fps)),
-                                                     output_frame)
-                cv2.imshow('Multi-Threaded Detection', output_frame)
-                cv2.imshow('Region of Interest', output_roi)
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
+                output_frame = output_q.get()
+                output_roi = output_q.get()
+                output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
+                output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
             else:
-                if (num_frames == 400):
-                    num_frames = 0
-                    start_time = datetime.datetime.now()
+                # 非摄像头视频
+                input_q.put(frame)
+                output_frame = output_q.get()
+                output_roi = output_q.get()
+
+            elapsed_time = (datetime.datetime.now() -
+                            start_time).total_seconds()
+            num_frames += 1
+            fps = num_frames / elapsed_time
+            # print("frame ",  index, num_frames, elapsed_time, fps)
+
+            if (output_frame is not None):
+                if (args.display > 0):
+                    if (args.fps > 0):
+                        detector_utils.draw_fps_on_image("FPS : " + str(int(fps)),
+                                                         output_frame)
+                    cv2.imshow('Multi-Threaded Detection', output_frame)
+                    cv2.imshow('ROI', output_roi)
+                    if cv2.waitKey(1) & 0xFF == ord('q'):
+                        break
                 else:
-                    print("frames processed: ", index, "elapsed time: ",
-                          elapsed_time, "fps: ", str(int(fps)))
-        else:
-            # print("video end")
-            break
+                    if (num_frames == 400):
+                        num_frames = 0
+                        start_time = datetime.datetime.now()
+                    else:
+                        print("frames processed: ", index, "elapsed time: ",
+                              elapsed_time, "fps: ", str(int(fps)))
+            else:
+                # print("video end")
+                break
+        except Exception as e:
+            print('【Exception】: ', e)
 
     # ----------------Loop结束---------------- #
     elapsed_time = (datetime.datetime.now() - start_time).total_seconds()
