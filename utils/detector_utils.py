@@ -53,7 +53,8 @@ def load_inference_graph():
 # You can modify this to also draw a label.
 def draw_box_on_image(num_hands_detect, score_thresh,
                       scores, boxes, im_width, im_height, image_np):
-    boxes_ret = []  # 存储检测到的矩形框
+    # 存储检测到的矩形框和得分
+    boxes_ret = []
     scores_ret = []
     for i in range(num_hands_detect):
         if (scores[i] > score_thresh):
