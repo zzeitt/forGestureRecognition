@@ -107,9 +107,7 @@ def tellHand(image_np):
         ellipse_fit_conts, _ = cv2.findContours(
             image_temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         match_rate = cv2.matchShapes(cnt, ellipse_fit_conts[0], 1, 0.0)
-        if match_rate < 0.05:
-            str_gesture = 'Fist'
-        else:
+        if match_rate > 0.04:
             # ------------ 凸缺陷检测 ------------ #
             hull = cv2.convexHull(cnt, returnPoints=False)
             defects = cv2.convexityDefects(cnt, hull)
@@ -117,15 +115,19 @@ def tellHand(image_np):
             for i in range(defects.shape[0]):
                 s, e, f, d = defects[i, 0]
                 d /= 256
-                if d > rows*0.07:
+                if d > rows * 0.05:
                     start = tuple(cnt[s][0])
                     end = tuple(cnt[e][0])
                     far = tuple(cnt[f][0])
                     cv2.line(image_extract_3ch, start, end, [0, 255, 0], 2)
                     cv2.circle(image_extract_3ch, far, 5, [255, 0, 0], -1)
                     num_far += 1
-            if num_far >= 4:
+            if num_far <= 2 and num_far >= 1:
+                str_gesture = 'Y'
+            if num_far >= 3:
                 str_gesture = '5'
+        else:
+            str_gesture = 'Fist'
 
     return image_extract_3ch, str_gesture
 
