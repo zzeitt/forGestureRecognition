@@ -59,7 +59,7 @@ def myContList(find_cont, area_ignore):
 
 
 def extractHand(image_np):
-    rows, cols, _ = image_np.shape
+    rows, cols = image_np.shape[0:2]
     # ------------ 高斯降噪 ------------ #
     image_blur = cv2.GaussianBlur(image_np, (7, 7), 1)
     # ------------ 开运算 ------------ #
@@ -83,7 +83,7 @@ def extractHand(image_np):
 
 
 def tellHand(image_np):
-    (rows, cols) = image_np.shape[0:2]
+    rows, cols = image_np.shape[0:2]
     # ------------ 轮廓提取 ------------ #
     cont_all, _ = cv2.findContours(
         image_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -132,7 +132,7 @@ def tellHand(image_np):
 def processROI(b_have_hand, image_np):
     if b_have_hand:
         try:
-            (rows, cols) = image_np.shape[0:2]
+            rows, cols = image_np.shape[0:2]
             image_extract = extractHand(image_np)
             image_ret, str_gesture = tellHand(image_extract)
             # ------------ 打印手势 ------------ #
