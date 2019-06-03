@@ -103,6 +103,7 @@ def tellHand(image_np):
         ellipse_fit = cv2.fitEllipse(cnt)
         image_temp = np.zeros((rows, cols), dtype='uint8')
         cv2.ellipse(image_temp, ellipse_fit, 255, thickness=-1)
+        cv2.ellipse(image_extract_3ch, ellipse_fit, (0, 0, 255), 2)
         ellipse_fit_conts, _ = cv2.findContours(
             image_temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         match_rate = cv2.matchShapes(cnt, ellipse_fit_conts[0], 1, 0.0)
