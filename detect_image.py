@@ -23,7 +23,7 @@ if __name__ == '__main__':
         help='Max number of hands to detect.')
     args = parser.parse_args()
     # 载入图像
-    img_src = cv2.imread('test_image/image0.jpg')
+    img_src = cv2.imread('test_image/image2.jpg')
     # 加载模型
     detection_graph, sess = detector_utils.load_inference_graph()
     sess = tf.Session(graph=detection_graph)
@@ -35,16 +35,15 @@ if __name__ == '__main__':
             img_src, detection_graph, sess)
         print('scores:', scores)
         # draw bounding boxes
-        boxes_to_recog = detector_utils.draw_box_on_image(
+        boxes_to_recog, scores_to_show = detector_utils.draw_box_on_image(
             args.num_hands, score_thresh, scores, boxes, 
             img_src.shape[1], img_src.shape[0], img_src)
+        b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(
+            scores_to_show, boxes_to_recog, 0.2,
+            img_src.shape[1], img_src.shape[0], img_src)
         cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
+        cv2.namedWindow('ROI', cv2.WINDOW_AUTOSIZE)
         cv2.imshow('Result', img_src)
-        # 进一步处理
-        # img_roi = recognizer_utils.getROI(img_src, boxes_to_recog, 0.1)
-        # img_dst = recognizer_utils.processROI(img_roi)
-        # 显示图片
-        # cv2.namedWindow('Result - processed', cv2.WINDOW_NORMAL)
-        # cv2.imshow('Result - processed', img_roi)
+        cv2.imshow('ROI', img_roi)
         cv2.waitKey(0)
 
