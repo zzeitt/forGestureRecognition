@@ -1,4 +1,4 @@
-# coding=utf-8
+# -*- coding:utf-8 -*-
 import cv2
 import numpy as np
 
@@ -47,18 +47,19 @@ def drawBoxOfROI(scores_roi, boxes_roi, margin_ratio, im_width, im_height, image
 
 
 def myContList(find_cont, area_ignore):
-    l_cont = find_cont  # 输入的轮廓列表
-    a_min = area_ignore  # 判定去除的最小面积
+    l_cont = find_cont
+    a_min = area_ignore
     c_big = []
     for i in range(len(l_cont)):
         cont = l_cont[i]
         a = cv2.contourArea(cont)
         if a > a_min:
-            c_big.append(cont)  # 留下符合大小的轮廓们
+            c_big.append(cont) 
     return c_big
 
 
-def extractHand(rows, cols, image_np):
+def extractHand(image_np):
+    rows, cols, _ = image_np.shape
     # ------------ 高斯降噪 ------------ #
     image_blur = cv2.GaussianBlur(image_np, (7, 7), 1)
     # ------------ 开运算 ------------ #
@@ -74,49 +75,68 @@ def extractHand(rows, cols, image_np):
     # ------------ 开运算 ------------ #
     kernel = np.ones((5, 5), np.uint8)
     image_bin = cv2.morphologyEx(image_bin, cv2.MORPH_OPEN, kernel)
+    # ------------ 遮挡部分 ------------ #
+    cv2.rectangle(image_bin, (0, int(rows * 0.82)),
+                  (cols, rows), 0, thickness=-1)
 
     return image_bin
+
+
+def tellHand(image_np):
+    (rows, cols) = image_np.shape[0:2]
+    # ------------ 轮廓提取 ------------ #
+    cont_all, _ = cv2.findContours(
+        image_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # 仅保留大轮廓
+    cont_all_big = myContList(cont_all, (rows*cols)/3)
+    # 变量初始化
+    str_gesture = 'NULL'
+    image_extract_3ch = cv2.merge(
+        [image_np, image_np, image_np])
+    if len(cont_all_big) > 0:
+        # ------------ 绘制轮廓 ------------ #
+        image_extract_3ch = np.zeros((rows, cols, 3), dtype='uint8')
+        cv2.drawContours(image_extract_3ch, cont_all_big,
+                         0, (127, 127, 127), -1)
+        cnt = cont_all_big[0]
+        # ------------ 判断“拳头” ------------ #
+        ellipse_fit = cv2.fitEllipse(cnt)
+        image_temp = np.zeros((rows, cols), dtype='uint8')
+        cv2.ellipse(image_temp, ellipse_fit, 255, thickness=-1)
+        ellipse_fit_conts, _ = cv2.findContours(
+            image_temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        match_rate = cv2.matchShapes(cnt, ellipse_fit_conts[0], 1, 0.0)
+        if match_rate < 0.05:
+            str_gesture = 'Fist'
+        else:
+            # ------------ 凸缺陷检测 ------------ #
+            hull = cv2.convexHull(cnt, returnPoints=False)
+            defects = cv2.convexityDefects(cnt, hull)
+            num_far = 0
+            for i in range(defects.shape[0]):
+                s, e, f, d = defects[i, 0]
+                d /= 256
+                if d > rows*0.07:
+                    start = tuple(cnt[s][0])
+                    end = tuple(cnt[e][0])
+                    far = tuple(cnt[f][0])
+                    cv2.line(image_extract_3ch, start, end, [0, 255, 0], 2)
+                    cv2.circle(image_extract_3ch, far, 5, [255, 0, 0], -1)
+                    num_far += 1
+            if num_far >= 4:
+                str_gesture = '5'
+
+    return image_extract_3ch, str_gesture
 
 
 def processROI(b_have_hand, image_np):
     if b_have_hand:
         try:
-            rows, cols, _ = image_np.shape
-            image_extract = extractHand(rows, cols, image_np)
-            # ------------ 轮廓提取 ------------ #
-            cont_all, _ = cv2.findContours(
-                image_extract, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            cont_all_big = myContList(cont_all, (rows*cols)/3)  # 仅保留大轮廓
-            if len(cont_all_big) > 0:
-                image_extract_3ch = np.zeros((rows, cols, 3), dtype='uint8')
-                cv2.drawContours(image_extract_3ch, cont_all_big, 0, (255, 255, 255), -1)
-                # ------------ 凸缺陷检测 ------------ #
-                cnt = cont_all_big[0]
-                hull = cv2.convexHull(cnt, returnPoints=False)
-                defects = cv2.convexityDefects(cnt, hull)
-                num_far = 0
-                for i in range(defects.shape[0]):
-                    s, e, f, d = defects[i, 0]
-                    d /= 256
-                    if d > rows*0.1:
-                        start = tuple(cnt[s][0])
-                        end = tuple(cnt[e][0])
-                        far = tuple(cnt[f][0])
-                        cv2.line(image_extract_3ch, start, end, [0, 255, 0], 2)
-                        cv2.circle(image_extract_3ch, far, 5, [255, 0, 0], -1)
-                        num_far += 1
-                if num_far >= 4:
-                    str_gesture = '5'
-                else:
-                    str_gesture = 'NULL'
-
-            else:
-                image_extract_3ch = cv2.merge([image_extract, image_extract, image_extract])
-                str_gesture = 'NULL'
-
-            image_ret = image_extract_3ch
+            (rows, cols) = image_np.shape[0:2]
+            image_extract = extractHand(image_np)
+            image_ret, str_gesture = tellHand(image_extract)
             # ------------ 打印手势 ------------ #
-            cv2.putText(image_ret, str_gesture, (0, cols - 2),
+            cv2.putText(image_ret, str_gesture, (0, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.75,
                         (0, 255, 0), 2)
             return image_ret
