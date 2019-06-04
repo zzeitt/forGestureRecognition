@@ -164,7 +164,7 @@ def countFarPoint(far_ratio, image_np_extend):
 
 def tellHand(image_np, image_np_extend):
     image_ellipse_fit, b_ellipse_fit = myEllipseFitting(0.03, image_np)
-    image_convex, i_num_far = countFarPoint(0.05, image_np_extend)
+    image_convex, i_num_far = countFarPoint(0.08, image_np_extend)
 
     if b_ellipse_fit:
         if i_num_far in (-1, 0, 1,):
