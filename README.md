@@ -1,11 +1,11 @@
 # Gesture Recognition
 > ### Gesture recognition from egocentric view.
 
-### Structure
+## Structure
 * Handtracking (from [victordibia](https://github.com/victordibia/handtracking))
 * Gesture estimation (using traditional image processing methods)
 
-### Requirements
+## Requirements
 * python 3.5.6
 * major packages:
     - numpy
@@ -13,7 +13,7 @@
     - tensorflow
     - multiprocessing (built in)
 
-### To-Dos
+## To-Dos
 #### About Recognition
 - [ ] add criteria for judging gestures
 #### About Detection
