@@ -2,7 +2,7 @@
 > ### Gesture recognition from egocentric view.
 
 ## Demo
-![demo](demo.gif)
+![demo](https://github.com/zzeitt/Gesture-Recognition/blob/master/demo.gif)
 
 ## Structure
 * Handtracking (from [victordibia](https://github.com/victordibia/handtracking))
