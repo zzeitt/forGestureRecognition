@@ -1,6 +1,9 @@
 # Gesture Recognition
 > ### Gesture recognition from egocentric view.
 
+## Demo
+![demo](demo.gif)
+
 ## Structure
 * Handtracking (from [victordibia](https://github.com/victordibia/handtracking))
 * Gesture estimation (using traditional image processing methods)
