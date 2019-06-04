@@ -34,10 +34,10 @@ def worker(input_q, output_q, cap_params, frame_processed):
                 cap_params['num_hands_detect'], cap_params["score_thresh"],
                 scores, boxes, cap_params['im_width'], cap_params['im_height'],
                 frame)
-            b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(
-                scores_to_show, boxes_to_recog, 0.2,
+            b_have_hand, img_roi, img_extend = recognizer_utils.drawBoxOfROI(
+                scores_to_show, boxes_to_recog, 0.2, 0.8,
                 cap_params['im_width'], cap_params['im_height'], frame)
-            img_roi = recognizer_utils.processROI(b_have_hand, img_roi)
+            img_roi = recognizer_utils.processROI(b_have_hand, img_roi, img_extend)
             # add frame annotated with bounding box to queue
             output_q.put(frame)
             output_q.put(img_roi)
