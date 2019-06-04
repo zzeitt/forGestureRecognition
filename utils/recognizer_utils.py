@@ -41,9 +41,9 @@ def drawBoxOfROI(scores_roi, boxes_roi, padding_ratio,
         image_clone_1 = image_np.copy()
         image_clone_2 = image_np.copy()
         image_extend = image_clone_1[margin_top:margin_bottom,
-                                margin_left:margin_right]
+                                     margin_left:margin_right]
         image_roi = image_clone_2[padding_top:padding_bottom,
-                             padding_left:padding_right]
+                                  padding_left:padding_right]
         # 可视化
         cv2.rectangle(image_np, (margin_left, margin_top),
                       (margin_right, margin_bottom), (0, 255, 255), 2, 1)
@@ -99,21 +99,17 @@ def extractHand(image_np, image_np_extend):
     return image_bin_list[0], image_bin_list[1]
 
 
-def tellHand(image_np, image_np_extend):
-    cont_2_list = []
-    for image_iter in (image_np, image_np_extend):
-        rows, cols = image_iter.shape[0:2]
-        # ------------ 轮廓提取 ------------ #
-        cont_all, _ = cv2.findContours(
-            image_iter, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        cont_all_big = myContList(cont_all, (rows*cols)/3)
-        cont_2_list.append(cont_all_big)
-
-        
-    if len(cont_2_list[0]) > 0:
-        # ------------ 绘制轮廓 ------------ #
-        rows, cols = image_np.shape[0:2]
-        cont_all_big = cont_2_list[0]
+def myEllipseFitting(diff_rate, image_np):
+    rows, cols = image_np.shape[0:2]
+    # ------------ 轮廓提取 ------------ #
+    cont_all, _ = cv2.findContours(
+        image_np, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cont_all_big = myContList(cont_all, (rows*cols)/3)
+    if len(cont_all_big) <= 0:
+        image_extract_3ch = cv2.merge(
+            [image_np, image_np, image_np])
+        b_ellipse_fit = False
+    else:
         image_extract_3ch = np.zeros((rows, cols, 3), dtype='uint8')
         cv2.drawContours(image_extract_3ch, cont_all_big,
                          0, (127, 127, 127), -1)
@@ -122,55 +118,91 @@ def tellHand(image_np, image_np_extend):
         ellipse_fit = cv2.fitEllipse(cnt)
         image_temp = np.zeros((rows, cols), dtype='uint8')
         cv2.ellipse(image_temp, ellipse_fit, 255, thickness=-1)
-        cv2.ellipse(image_extract_3ch, ellipse_fit, (0, 0, 255), 2)
         ellipse_fit_conts, _ = cv2.findContours(
             image_temp, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        match_rate = cv2.matchShapes(cnt, ellipse_fit_conts[0], 1, 0.0)
-        if match_rate < 0.03:
-            str_gesture = 'Fist'
-            return image_extract_3ch, str_gesture
-    
-    if len(cont_2_list[1]) > 0:
-        rows, cols = image_np_extend.shape[0:2]
-        cont_all_big = cont_2_list[1]
+        diff = cv2.matchShapes(cnt, ellipse_fit_conts[0], 1, 0.0)
+        if diff < diff_rate:
+            cv2.ellipse(image_extract_3ch, ellipse_fit, (0, 0, 255), 2)
+            b_ellipse_fit = True
+        else:
+            b_ellipse_fit = False
+
+    return image_extract_3ch, b_ellipse_fit
+
+
+def countFarPoint(far_ratio, image_np_extend):
+    rows, cols = image_np_extend.shape[0:2]
+    # ------------ 轮廓提取 ------------ #
+    cont_all, _ = cv2.findContours(
+        image_np_extend, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cont_all_big = myContList(cont_all, (rows*cols)/3)
+    if len(cont_all_big) <= 0:
+        image_extract_3ch = cv2.merge(
+            [image_np_extend, image_np_extend, image_np_extend])
+        i_num_far = -1
+    else:
         image_extract_3ch = np.zeros((rows, cols, 3), dtype='uint8')
         cv2.drawContours(image_extract_3ch, cont_all_big,
                          0, (127, 127, 127), -1)
-        cnt = cont_all_big[0]
-        # ------------ 凸缺陷检测 ------------ #
+        cnt = cont_all_big[0]        # ------------ 凸缺陷检测 ------------ #
         hull = cv2.convexHull(cnt, returnPoints=False)
         defects = cv2.convexityDefects(cnt, hull)
-        num_far = 0
+        i_num_far = 0
         for i in range(defects.shape[0]):
             s, e, f, d = defects[i, 0]
             d /= 256
-            if d > rows * 0.05:
+            if d > rows * far_ratio:
                 start = tuple(cnt[s][0])
                 end = tuple(cnt[e][0])
                 far = tuple(cnt[f][0])
                 cv2.line(image_extract_3ch, start, end, [0, 255, 0], 2)
                 cv2.circle(image_extract_3ch, far, 5, [255, 0, 0], -1)
-                num_far += 1
-        if num_far in (1, 2):
+                i_num_far += 1
+
+    return image_extract_3ch, i_num_far
+
+
+def tellHand(image_np, image_np_extend):
+    image_ellipse_fit, b_ellipse_fit = myEllipseFitting(0.03, image_np)
+    image_convex, i_num_far = countFarPoint(0.05, image_np_extend)
+
+    if b_ellipse_fit:
+        if i_num_far in (-1, 0, 1,):
+            image_ret = image_ellipse_fit
+            str_gesture = 'Fist'
+        elif i_num_far in (2,):
+            image_ret = image_convex
             str_gesture = 'Y'
-        elif num_far in (3, 4, 5):
+        elif i_num_far in (3,):
+            image_ret = image_convex
+            str_gesture = '3'
+        else:
+            image_ret = image_ellipse_fit
+            str_gesture = 'NULL'
+    else:
+        if i_num_far in (2,):
+            image_ret = image_convex
+            str_gesture = 'Y'
+        elif i_num_far in (3,):
+            image_ret = image_convex
+            str_gesture = '3'
+        elif i_num_far in (4,):
+            image_ret = image_convex
             str_gesture = '5'
         else:
+            image_ret = image_convex
             str_gesture = 'NULL'
-        return image_extract_3ch, str_gesture
-    
-    image_extract_3ch = cv2.merge(
-            [image_np, image_np, image_np])     
-    str_gesture = 'NULL'
 
-    return image_extract_3ch, str_gesture
+    return image_ret, str_gesture
 
 
 def processROI(b_have_hand, image_np, image_np_extend):
     if b_have_hand:
         try:
-            image_extract, image_extract_extend = extractHand(image_np, image_np_extend)
-            image_ret, str_gesture = tellHand(image_extract, image_extract_extend)
+            image_extract, image_extract_extend = extractHand(
+                image_np, image_np_extend)
+            image_ret, str_gesture = tellHand(
+                image_extract, image_extract_extend)
             # ------------ 打印手势 ------------ #
             cv2.putText(image_ret, str_gesture, (0, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.75,
