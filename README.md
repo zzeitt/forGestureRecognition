@@ -19,6 +19,7 @@
 ## To-Dos
 #### About Recognition
 - [ ] add criteria for judging gestures
+- [ ] segment hand using `canny` or `depth`
 #### About Detection
 - [ ] train the model myself
 #### About Project
