@@ -207,9 +207,9 @@ def processROI(b_have_hand, image_np, image_np_extend):
             cv2.putText(image_ret, str_gesture, (0, 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.75,
                         (0, 255, 0), 2)
-            return image_ret
+            return image_ret, str_gesture
         except Exception as e:
             print('【Exception】', e)
-            return image_np
+            return image_np, "NULL"
     else:
-        return image_np
+        return image_np, "NULL"

@@ -11,6 +11,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # 消除警告
 
+ACCURACY_GAP = 60
 
 frame_processed = 0
 score_thresh = 0.5
@@ -37,10 +38,11 @@ def worker(input_q, output_q, cap_params, frame_processed):
             b_have_hand, img_roi, img_extend = recognizer_utils.drawBoxOfROI(
                 scores_to_show, boxes_to_recog, 0.2, 0.8,
                 cap_params['im_width'], cap_params['im_height'], frame)
-            img_roi = recognizer_utils.processROI(b_have_hand, img_roi, img_extend)
+            img_roi, str_gesture = recognizer_utils.processROI(b_have_hand, img_roi, img_extend)
             # add frame annotated with bounding box to queue
             output_q.put(frame)
             output_q.put(img_roi)
+            output_q.put(str_gesture)
             frame_processed += 1
         else:
             output_q.put(frame)
@@ -69,6 +71,7 @@ if __name__ == '__main__':
 
     start_time = datetime.datetime.now()
     num_frames = 0
+    num_gesture_count = 0
     fps = 0
     index = 0
 
@@ -85,16 +88,25 @@ if __name__ == '__main__':
 
             output_frame = output_q.get()
             output_roi = output_q.get()
+            str_gesture = output_q.get()  # 获取手势判别输出
             output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
             output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
 
             num_frames += 1
+            num_frames_mod = num_frames % ACCURACY_GAP
 
             if (output_frame is not None):
                     cv2.imshow('Multi-Threaded Detection', output_frame)
                     cv2.imshow('ROI', output_roi)
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
+
+                    if str_gesture == '5':
+                        num_gesture_count += 1
+                    if num_frames_mod == ACCURACY_GAP - 1:
+                        print("Accuracy:", num_gesture_count / ACCURACY_GAP)
+                        num_gesture_count = 0                        
+
             else:
                 break
         except Exception as e:
