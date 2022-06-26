@@ -16,14 +16,4 @@
     - tensorflow
     - multiprocessing (built in)
 
-## To-Dos
-#### About Recognition
-- [ ] add criteria for judging gestures
-- [ ] segment hand using `canny` or `depth`
-#### About Detection
-- [ ] train the model myself
-#### About Project
-- [ ] rewrite the function in `class`
-- [ ] embed it in GUI
-- [ ] control the game with it
 
