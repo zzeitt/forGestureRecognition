@@ -26,7 +26,7 @@ if __name__ == '__main__':
     img_src = cv2.imread('test_image/image2.jpg')
     # 加载模型
     detection_graph, sess = detector_utils.load_inference_graph()
-    sess = tf.Session(graph=detection_graph)
+    sess = tf.compat.v1.Session(graph=detection_graph)
     if img_src is None:
         print('图片加载失败！')
     else:
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         boxes_to_recog, scores_to_show = detector_utils.draw_box_on_image(
             args.num_hands, score_thresh, scores, boxes, 
             img_src.shape[1], img_src.shape[0], img_src)
-        b_have_hand, img_roi = recognizer_utils.drawBoxOfROI(
-            scores_to_show, boxes_to_recog, 0.2,
+        b_have_hand, img_roi, image_extend = recognizer_utils.drawBoxOfROI(
+            scores_to_show, boxes_to_recog, 0.2, 0.8,
             img_src.shape[1], img_src.shape[0], img_src)
         cv2.namedWindow('Result', cv2.WINDOW_NORMAL)
         cv2.namedWindow('ROI', cv2.WINDOW_AUTOSIZE)
