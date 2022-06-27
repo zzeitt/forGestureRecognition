@@ -24,7 +24,7 @@ queue_size = 3
 def worker(input_q, output_q, cap_params, frame_processed):
     print(">> loading frozen model for worker")
     detection_graph, sess = detector_utils.load_inference_graph()
-    sess = tf.Session(graph=detection_graph)
+    sess = tf.compat.v1.Session(graph=detection_graph)
     while True:
         frame = input_q.get()
         if (frame is not None):
@@ -84,28 +84,33 @@ if __name__ == '__main__':
             frame = video_capture.read()
 
             frame = cv2.flip(frame, 1)
-            input_q.put(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            if frame is not None:
+                    input_q.put(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
             output_frame = output_q.get()
             output_roi = output_q.get()
             str_gesture = output_q.get()  # 获取手势判别输出
-            output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
-            output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
+            
 
             num_frames += 1
             num_frames_mod = num_frames % ACCURACY_GAP
 
             if (output_frame is not None):
-                    cv2.imshow('Multi-Threaded Detection', output_frame)
-                    cv2.imshow('ROI', output_roi)
-                    if cv2.waitKey(1) & 0xFF == ord('q'):
-                        break
+                
+                output_frame = cv2.cvtColor(output_frame, cv2.COLOR_RGB2BGR)
+                if (output_roi is not None):
+                    output_roi = cv2.cvtColor(output_roi, cv2.COLOR_RGB2BGR)
+                
+                cv2.imshow('Multi-Threaded Detection', output_frame)
+                cv2.imshow('ROI', output_roi)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
 
-                    if str_gesture == '5':
-                        num_gesture_count += 1
-                    if num_frames_mod == ACCURACY_GAP - 1:
-                        print("Accuracy:", num_gesture_count / ACCURACY_GAP)
-                        num_gesture_count = 0                        
+                if str_gesture == '5':
+                    num_gesture_count += 1
+                if num_frames_mod == ACCURACY_GAP - 1:
+                    print("Accuracy:", num_gesture_count / ACCURACY_GAP)
+                    num_gesture_count = 0                        
 
             else:
                 break
